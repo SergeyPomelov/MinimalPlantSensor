@@ -3,17 +3,18 @@
 #include <Data.h>
 #include <WiFiFunctions.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
+#include <Common.h>
 
 HTTPClient http;
-WiFiClient wifi;
+ESP8266WiFiMulti WiFiMulti;
 
 void WiFiinit()
 {
   Serial.print(F("Initialising Wifi "));
+  WiFiMulti.addAP(AP_SSID, AP_PASS);
   WiFi.mode(WIFI_STA);
-  WiFi.config(IP, GATE, MASK);
-  WiFi.begin(AP_SSID, AP_PASS);
   WiFi.persistent(true);
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
@@ -32,17 +33,20 @@ void wait()
 
 boolean WiFiconnect()
 {
-  if (WiFi.status() != WL_CONNECTED && WiFi.SSID() != AP_SSID)
+  ESP.wdtFeed();
+  if (WiFi.SSID() != AP_SSID)
   {
     WiFiinit();
   }
 
   unsigned long startTime = millis();
   unsigned long tries = 1;
-  while (WiFi.status() != WL_CONNECTED)
+  Serial.print(" Connecting: ");
+  while (WiFiMulti.run() != WL_CONNECTED)
   {
     delay(200);
     Serial.print('.');
+    ESP.wdtFeed();
     unsigned long elapsedTime = millis() - startTime;
     if (elapsedTime > 15000)
     {
@@ -69,19 +73,25 @@ int updateDevice(const String id, const String value, const boolean terminal)
   payload.replace("[id]", id);
   payload.replace("[value]", value);
 
-  http.begin(wifi, url);
+  WiFiClient client;
+  HTTPClient http;
+  http.begin(client, url);
   http.setTimeout(5000U);
 
   http.addHeader("Host", BACKEND_HOST);
-  http.addHeader("Authorization", "Bearer " + String(SECURITY_TOKEN));
-  http.addHeader("Accept", "*/*");
+  http.addHeader("Authorization", String("Bearer") + " " + SECURITY_TOKEN);
+  http.addHeader("Accept", "application/json");
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Upgrade-Insecure-Requests", "1");
-  http.addHeader("User-Agent", "ESP8266 Plant Sensor 1 v3");
+  http.addHeader("User-Agent", "ESP8266 Weather Station v5");
 
   if (terminal)
   {
     http.addHeader("Connection", "close");
+  }
+  else
+  {
+    http.addHeader("Connection", "keep-alive");
   }
 
   Serial.println((char *)url.c_str());
@@ -90,11 +100,15 @@ int updateDevice(const String id, const String value, const boolean terminal)
   httpCode = http.POST(payload);
   if (httpCode > 0)
   {
-    // Serial.printf("Domoticz send code: %d\n", httpCode);
-    if (httpCode != HTTP_CODE_OK)
+
+    if (httpCode == HTTP_CODE_OK)
     {
       String payload = http.getString();
       Serial.println(payload);
+    }
+    else
+    {
+      Serial.printf("POST code: %d\n", httpCode);
     }
   }
   else
@@ -102,18 +116,20 @@ int updateDevice(const String id, const String value, const boolean terminal)
     Serial.printf("Send failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
 
+  Serial.print("Send end.");
   http.end();
   return httpCode;
 }
 
-void sendDataDomoticz() {
-  digitalWrite(LED_BUILTIN, LOW);
-  const float moisturePercent = (100.0F - ((soilMv * 1.0F) / 20.0F));
-  if (moisturePercent > 0.0F && moisturePercent < 100.0F && WiFiconnect())
+void sendData() {
+  const float moisturePercent = mvToMoisture(soilMv);
+  Serial.printf("moisturePercent: %s\n", String(moisturePercent, 2U).c_str());
+  if (soilMv > 0U && soilMv < 6000.0F)
   {
+    digitalWrite(LED_BUILTIN, LOW);
+    updateDevice(toDeviceId("moisture"), String(mvToMoisture(soilMv), 2U), false);
     digitalWrite(LED_BUILTIN, HIGH);
-    Serial.print("Send begin...\n");
-    updateDevice("sensor.virtual_plant_2_moisture", String(moisturePercent, 2U), false);
+    updateDevice(toDeviceId("soil_mv"), String(soilMv), true);
     digitalWrite(LED_BUILTIN, LOW);
   }
 }

@@ -25,7 +25,7 @@ void setup()
   readSensors();
   if (soilMv > 0.0F && soilMv < 2800.0F)
   {
-    sendDataDomoticz();
+    sendData();
   }
   hibernate();
 }

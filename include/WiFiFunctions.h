@@ -4,4 +4,4 @@ void hibernate();
 
 void wait();
 
-void sendDataDomoticz();
+void sendData();
