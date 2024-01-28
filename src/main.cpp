@@ -23,10 +23,7 @@ void setup()
   digitalWrite(LED_BUILTIN, LOW);
 
   readSensors();
-  if (soilMv > 0.0F && soilMv < 2800.0F)
-  {
-    sendData();
-  }
+  sendData();
   hibernate();
 }
 

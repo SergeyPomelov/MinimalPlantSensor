@@ -6,9 +6,9 @@
 uint16_t toMv(int reading, float koef)
 {
   const float dividerK = (DIVIDER_IN_OHM - PROBE_OHM + DIVIDER_G_OHM - PROBE_OHM) / (DIVIDER_G_OHM - PROBE_OHM);
-  Serial.println(reading);
-  Serial.println(reading * (ADC_MAX_MV / 1023.0F) + DIODE_FALL_MV);
-  Serial.println(dividerK);
+  // Serial.println(reading);
+  // Serial.println(reading * (ADC_MAX_MV / 1023.0F) + DIODE_FALL_MV);
+  // Serial.println(dividerK);
   return (uint16_t) round((reading * (ADC_MAX_MV / 1023.0F) * dividerK + DIODE_FALL_MV) * koef);
 }
 
@@ -22,8 +22,6 @@ float mvToMoisture(int mv)
 int mvToLux(int mv)
 {
   float RLDR = (PHOTO_PULLDOWN_OHM * (VIN_MV - mv)) / mv;
-
-
   return (int)round(500.0F / (RLDR / 1000.0F));
 }
 

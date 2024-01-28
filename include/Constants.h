@@ -14,4 +14,4 @@
 #define DIVIDER_IN_OHM          33000.0F
 #define PHOTO_DIVIDER_K         1.0F
 #define SOIL_DIVIDER_K          1.0F
-#define DEVICE_ID               "plant_1"
+#define DEVICE_ID               "plant_2"
